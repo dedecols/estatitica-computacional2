@@ -1,0 +1,126 @@
+---
+title: "Questão 9.6"
+output: html_notebook
+---
+
+Temos uma amostra aleatória de uma variável aleatória que depende de um parâmetro não conhecido (theta). O próprio enunciado informa que o estimador para theta é a variância amostral, S2.
+
+# item a
+
+Obtenha as estimativas de jackknife para theta e para a variância de theta.hat (estimativa da variância do estimador de Jackknife).
+
+```{r inserindo dados, echo=FALSE}
+n <- 5
+x<-c(2.1,1.7,4,1.8,5)
+
+```
+
+Primeiro, vamos encontrar o estimador de Jackknife para o parâmetro desejado: a variância populacional. Para tanto, implementarei o algoritmo de Jackknife e depois como maneira alternativa usarei o pacote bootstrap.
+
+Lembrando que para chegar no estimador de Jackknife é preciso ter duas informações antes: 1) estimadores das reamostras 2) pseudo valores de Jackknife
+
+Implementação do algoritmo
+
+```{r 1A-estimador pontual 1 de Jackknife implementado}
+# Estimador baseado em todas as observações da amostra
+theta.hat <- var(x)
+
+# Estimadores baseados em n-1 observações (estimadores de cada reamostra)
+theta.hat.i <- NULL
+for (i in 1:n) {
+  theta.hat.i[i] <- var(x[-i]) ## atenção aqui, theta.hat.i tem que ser igual ao theta.hat (media, var etc)
+}
+
+# Pseudo-valores de Jackknife
+theta.til <- NULL
+for (i in 1:n) {
+  theta.til[i] <- n*theta.hat-(n-1)*theta.hat.i[i]
+}
+
+# Estimador pontual de Jackknife para o parâmetro desejado (variância populacional)
+theta.jack <- mean(theta.til)
+theta.jack
+```
+
+Estimador de Jackknife usando o pacote bootstrap. Vemos que o estimador pontual de Jackknife para o parâmetro é igual ao estimador amostral do parâmetro (S2).
+
+```{r 1A-estimador pontual 1 de Jackknife com pacote}
+library(bootstrap)
+
+# Informações gerais
+jackknife(x,function(x)var(x))
+
+# Estimador de S2 para toda amostra
+(theta.hat <- var(x))
+
+# Estimador de cada reamostra
+(theta.hat.i <- jackknife(x,function(x)var(x))$jack.values)
+
+# Pseudo-valores de jackknife
+(theta.til <- n*theta.hat-(n-1)*theta.hat.i)
+
+# Estimador de Jackknife para o parâmetro desejado (variância populacional)
+theta.jack.lib <- mean(theta.til)
+theta.jack.lib
+
+# Variância do estimador
+(jackknife(x,function(x)var(x))$jack.se)^2
+```
+
+Agora vamos obter as estimativas de Jackknife para variância de theta.hat (estimativa da variância da variância populacional estimada)
+
+```{r 1A-estimador 2 de Jackknife}
+theta.jack2 <- (1/(n*(n-1)))*sum((theta.til-theta.jack)^2)
+theta.jack2
+```
+
+```{r 1A-estimador intervalar 1 de jackknife}
+n <- 5
+alpha <- 0.05
+li <- theta.jack.lib-qt(1-alpha/2,n-1)*jackknife(x,function(x)var(x))$jack.se
+ls <- theta.jack.lib+qt(1-alpha/2,n-1)*jackknife(x,function(x)var(x))$jack.se
+
+(intervalo <- c(li,ls))
+```
+
+# item b
+
+Encontrar intervalo simétrico de 95% de confiança para theta baseado no estimador de Jackknife
+
+```{r 1B-intervalo de confiança}
+li <- theta.jack.lib-qt(1-alpha/2,n-1)*jackknife(x,function(x)var(x))$jack.se
+ls <- theta.jack.lib+qt(1-alpha/2,n-1)*jackknife(x,function(x)var(x))$jack.se
+
+intervalo <- c(li,ls)
+intervalo
+```
+
+# item c
+
+Suponha que theta.hat=mínimo. Refazer os itens (a) e (b)
+
+```{r 1C-estimador pontual 1 de Jackknife}
+# Cacular o estimador de Jackknife e a variância desse estimador
+
+# Estimador do Mínimo: mínimo amostral
+(theta.hat <- min(x))
+
+# Estimadores de cada reamostra
+(theta.hat.i <- jackknife(x,function(x)min(x))$jack.values)
+
+# Pseudo-valores de Jackknife
+(theta.til <- n*theta.hat-(n-1)*theta.hat.i)
+
+# Estimador de Jackknife
+(theta.jack.lib <- mean(theta.til))
+
+```
+
+```{r 1C-estimador intervalar 1 de Jackknife}
+li <- theta.jack.lib-qt(1-alpha/2,n-1)*jackknife(x,function(x)min(x))$jack.se
+ls <- theta.jack.lib+qt(1-alpha/2,n-1)*jackknife(x,function(x)min(x))$jack.se
+
+intervalo <- c(li,ls)
+intervalo
+
+```
